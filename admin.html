@@ -98,11 +98,11 @@
 </ion-app>
 
 <script>
-   Gimme all of them with those keys hardcoded
-
-const SUPABASE_URL = 'https://wqhyfotqobtrtxsjmkmr.supabase.co';
+    // Supabase Initialization
+    const SUPABASE_URL = 'https://wqhyfotqobtrtxsjmkmr.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndxaHlmb3Rxb2J0cnR4c2pta21yIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcxNzAxNzIyMiwiZXhwIjoyMDMyNTkzMjIyfQ.1IFmf1XqQcwwHX9YvLLUKYYGLjILpvJHWHH0nWt8LoI';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
     // Global Variables
     let language = 'zh'; // Default language: Chinese
 
@@ -242,7 +242,7 @@ const SUPABASE_URL = 'https://wqhyfotqobtrtxsjmkmr.supabase.co';
         localize();
 
         // Real-time updates for orders
-        const orderSubscription = supabase
+        supabase
             .channel('public:menu_orders')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'menu_orders' }, payload => {
                 loadOrders();
