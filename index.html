@@ -191,9 +191,7 @@
 
 <script>
     // Supabase Initialization
-    Gimme all of them with those keys hardcoded
-
-const SUPABASE_URL = 'https://wqhyfotqobtrtxsjmkmr.supabase.co';
+    const SUPABASE_URL = 'https://wqhyfotqobtrtxsjmkmr.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndxaHlmb3Rxb2J0cnR4c2pta21yIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcxNzAxNzIyMiwiZXhwIjoyMDMyNTkzMjIyfQ.1IFmf1XqQcwwHX9YvLLUKYYGLjILpvJHWHH0nWt8LoI';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -269,6 +267,7 @@ const SUPABASE_URL = 'https://wqhyfotqobtrtxsjmkmr.supabase.co';
         document.querySelector('ion-button[onclick="confirmOrder()"]').innerText = texts[language].placeOrder;
     }
 
+    // Define the 'enterMenu' function
     function enterMenu() {
         document.getElementById('landing-page').style.display = 'none';
         document.getElementById('menu-page').style.display = 'block';
@@ -385,6 +384,7 @@ const SUPABASE_URL = 'https://wqhyfotqobtrtxsjmkmr.supabase.co';
             }
         }
 
+        // Expose functions to the global scope
         window.increaseQuantity = increaseQuantity;
         window.decreaseQuantity = decreaseQuantity;
     }
