@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Ionic Framework CSS -->
     <link href="https://cdn.jsdelivr.net/npm/@ionic/core/css/ionic.bundle.css" rel="stylesheet">
+    <!-- Ionicons -->
+    <link href="https://cdn.jsdelivr.net/npm/ionicons@5.5.2/dist/css/ionicons.min.css" rel="stylesheet">
     <!-- Custom Styles -->
     <style>
         /* Global Styles */
@@ -28,14 +30,13 @@
         .tab-content {
             padding: 10px;
         }
+        /* Orders Tab Styles */
         .order-item {
             background-color: #fff;
             margin-bottom: 10px;
             border-radius: 8px;
             padding: 15px;
-        }
-        .order-item:hover {
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .order-info {
             display: flex;
@@ -50,10 +51,46 @@
             font-size: 16px;
             color: #57606f;
         }
+        /* Products Tab Styles */
+        .product-item {
+            background-color: #fff;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .product-image {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-right: 15px;
+            background-color: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #bbb;
+            font-size: 24px;
+        }
+        .product-info {
+            flex: 1;
+        }
+        .product-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 0;
+        }
+        .product-price {
+            color: #ff4757;
+            font-size: 16px;
+            margin: 5px 0;
+        }
         /* Responsive Grid */
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
             gap: 15px;
         }
     </style>
@@ -77,6 +114,23 @@
 
     <ion-tabs>
 
+        <!-- Tab Bar -->
+        <ion-tab-bar slot="bottom">
+            <ion-tab-button tab="orders">
+                <ion-icon name="receipt-outline"></ion-icon>
+                <ion-label id="orders-tab-label"></ion-label>
+            </ion-tab-button>
+            <ion-tab-button tab="products">
+                <ion-icon name="fast-food-outline"></ion-icon>
+                <ion-label id="products-tab-label"></ion-label>
+            </ion-tab-button>
+            <ion-tab-button tab="categories">
+                <ion-icon name="list-outline"></ion-icon>
+                <ion-label id="categories-tab-label"></ion-label>
+            </ion-tab-button>
+        </ion-tab-bar>
+
+        <!-- Orders Tab -->
         <ion-tab tab="orders">
             <ion-content>
                 <div class="tab-content">
@@ -87,17 +141,44 @@
             </ion-content>
         </ion-tab>
 
-        <ion-tab-bar slot="bottom">
-            <ion-tab-button tab="orders">
-                <ion-icon name="receipt"></ion-icon>
-                <ion-label id="orders-tab-label"></ion-label>
-            </ion-tab-button>
-        </ion-tab-bar>
+        <!-- Products Tab -->
+        <ion-tab tab="products">
+            <ion-content>
+                <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+                    <ion-fab-button onclick="openProductModal()">
+                        <ion-icon name="add"></ion-icon>
+                    </ion-fab-button>
+                </ion-fab>
+                <div class="tab-content">
+                    <div id="product-list">
+                        <!-- Product Items -->
+                    </div>
+                </div>
+            </ion-content>
+        </ion-tab>
+
+        <!-- Categories Tab -->
+        <ion-tab tab="categories">
+            <ion-content>
+                <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+                    <ion-fab-button onclick="openCategoryModal()">
+                        <ion-icon name="add"></ion-icon>
+                    </ion-fab-button>
+                </ion-fab>
+                <div class="tab-content">
+                    <ion-list id="category-list">
+                        <!-- Category Items -->
+                    </ion-list>
+                </div>
+            </ion-content>
+        </ion-tab>
 
     </ion-tabs>
 </ion-app>
 
-<script>
+<script type="module">
+    import { modalController, alertController, toastController } from 'https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.esm.js';
+
     // Supabase Initialization
     const SUPABASE_URL = 'https://wqhyfotqobtrtxsjmkmr.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndxaHlmb3Rxb2J0cnR4c2pta21yIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcxNzAxNzIyMiwiZXhwIjoyMDMyNTkzMjIyfQ.1IFmf1XqQcwwHX9YvLLUKYYGLjILpvJHWHH0nWt8LoI';
@@ -111,6 +192,8 @@
         zh: {
             appTitle: '喜大大 - 管理后台',
             ordersTab: '订单',
+            productsTab: '产品',
+            categoriesTab: '类别',
             languageToggle: 'Español',
             orderNumber: '订单号',
             tableNumber: '桌号',
@@ -123,10 +206,31 @@
             newStatus: '输入新的订单状态',
             cancel: '取消',
             save: '保存',
+            noOrders: '当前没有订单。',
+            edit: '编辑',
+            delete: '删除',
+            availability: '可用性',
+            addProduct: '添加产品',
+            editProduct: '编辑产品',
+            nameZh: '中文名称',
+            nameEs: '西班牙语名称',
+            descriptionZh: '中文描述',
+            descriptionEs: '西班牙语描述',
+            image: '图片',
+            category: '类别',
+            addCategory: '添加类别',
+            editCategory: '编辑类别',
+            noProducts: '当前没有产品。',
+            noCategories: '当前没有类别。',
+            confirmDelete: '确认删除？',
+            yes: '是',
+            no: '否',
         },
         es: {
             appTitle: 'XIDADA - Administración',
             ordersTab: 'Pedidos',
+            productsTab: 'Productos',
+            categoriesTab: 'Categorías',
             languageToggle: '中文',
             orderNumber: 'Pedido',
             tableNumber: 'Mesa',
@@ -139,6 +243,25 @@
             newStatus: 'Ingrese el nuevo estado del pedido',
             cancel: 'Cancelar',
             save: 'Guardar',
+            noOrders: 'No hay pedidos en este momento.',
+            edit: 'Editar',
+            delete: 'Eliminar',
+            availability: 'Disponibilidad',
+            addProduct: 'Agregar Producto',
+            editProduct: 'Editar Producto',
+            nameZh: 'Nombre en Chino',
+            nameEs: 'Nombre en Español',
+            descriptionZh: 'Descripción en Chino',
+            descriptionEs: 'Descripción en Español',
+            image: 'Imagen',
+            category: 'Categoría',
+            addCategory: 'Agregar Categoría',
+            editCategory: 'Editar Categoría',
+            noProducts: 'No hay productos en este momento.',
+            noCategories: 'No hay categorías en este momento.',
+            confirmDelete: '¿Confirmar eliminación?',
+            yes: 'Sí',
+            no: 'No',
         }
     };
 
@@ -146,9 +269,19 @@
         document.getElementById('language-toggle').innerText = texts[language].languageToggle;
         document.getElementById('app-title').innerText = texts[language].appTitle;
         document.getElementById('orders-tab-label').innerText = texts[language].ordersTab;
+        document.getElementById('products-tab-label').innerText = texts[language].productsTab;
+        document.getElementById('categories-tab-label').innerText = texts[language].categoriesTab;
         loadOrders();
+        loadProducts();
+        loadCategories();
     }
 
+    function toggleLanguage() {
+        language = language === 'zh' ? 'es' : 'zh';
+        localize();
+    }
+
+    // Orders Functions
     async function loadOrders() {
         const { data, error } = await supabase.from('menu_orders').select('*').order('created_at', { ascending: false });
         if (error) {
@@ -157,6 +290,12 @@
         }
         const orderList = document.getElementById('order-list');
         orderList.innerHTML = '';
+
+        if (data.length === 0) {
+            orderList.innerHTML = `<p style="text-align: center; padding: 20px;">${texts[language].noOrders}</p>`;
+            return;
+        }
+
         data.forEach(order => {
             const orderItem = document.createElement('div');
             orderItem.classList.add('order-item');
@@ -167,7 +306,7 @@
                         <p class="order-status">${texts[language].status}: ${order.status}</p>
                         <p>${texts[language].tableNumber}: ${order.table_number}</p>
                     </div>
-                    <ion-button onclick="changeOrderStatus(${order.id})">${texts[language].updateStatus}</ion-button>
+                    <ion-button size="small" color="primary" onclick="changeOrderStatus(${order.id})">${texts[language].updateStatus}</ion-button>
                 </div>
                 <div id="order-items-${order.id}"></div>
             `;
@@ -201,41 +340,402 @@
         });
     }
 
-    function toggleLanguage() {
-        language = language === 'zh' ? 'es' : 'zh';
-        localize();
+    async function changeOrderStatus(orderId) {
+        const alert = await alertController.create({
+            header: texts[language].updateStatus,
+            inputs: [
+                {
+                    name: 'status',
+                    type: 'text',
+                    placeholder: texts[language].newStatus
+                }
+            ],
+            buttons: [
+                {
+                    text: texts[language].cancel,
+                    role: 'cancel'
+                },
+                {
+                    text: texts[language].save,
+                    handler: async (data) => {
+                        if (!data.status) return;
+                        const { error } = await supabase.from('menu_orders').update({ status: data.status }).eq('id', orderId);
+                        if (error) {
+                            console.error('Error updating order status:', error);
+                            return;
+                        }
+                        loadOrders();
+                    }
+                }
+            ]
+        });
+        await alert.present();
     }
 
-    async function changeOrderStatus(orderId) {
-        const prompt = document.createElement('ion-alert');
-        prompt.header = texts[language].updateStatus;
-        prompt.inputs = [
-            {
-                name: 'status',
-                type: 'text',
-                placeholder: texts[language].newStatus
+    // Products Functions
+    async function loadProducts() {
+        const { data, error } = await supabase.from('menu_products').select('*, menu_categories(name_zh, name_es)').order('id', { ascending: true });
+        if (error) {
+            console.error('Error loading products:', error);
+            return;
+        }
+        const productList = document.getElementById('product-list');
+        productList.innerHTML = '';
+
+        if (data.length === 0) {
+            productList.innerHTML = `<p style="text-align: center; padding: 20px;">${texts[language].noProducts}</p>`;
+            return;
+        }
+
+        data.forEach(product => {
+            const productName = language === 'zh' ? product.name_zh : product.name_es;
+            const categoryName = language === 'zh' ? product.menu_categories.name_zh : product.menu_categories.name_es;
+
+            const productItem = document.createElement('div');
+            productItem.classList.add('product-item');
+
+            let productImage;
+            if (product.image_base64) {
+                productImage = `<img src="data:image/jpeg;base64,${product.image_base64}" alt="${productName}" class="product-image">`;
+            } else {
+                productImage = `<div class="product-image">${language === 'zh' ? '暂无图片' : 'Sin imagen'}</div>`;
             }
-        ];
-        prompt.buttons = [
-            {
-                text: texts[language].cancel,
-                role: 'cancel'
-            },
-            {
-                text: texts[language].save,
-                handler: async (data) => {
-                    if (!data.status) return;
-                    const { error } = await supabase.from('menu_orders').update({ status: data.status }).eq('id', orderId);
-                    if (error) {
-                        console.error('Error updating order status:', error);
-                        return;
+
+            productItem.innerHTML = `
+                ${productImage}
+                <div class="product-info">
+                    <p class="product-name">${productName}</p>
+                    <p>${texts[language].category}: ${categoryName}</p>
+                    <p class="product-price">¥${product.price.toFixed(2)}</p>
+                </div>
+                <ion-buttons slot="end">
+                    <ion-button size="small" color="primary" onclick="openProductModal(${product.id})">${texts[language].edit}</ion-button>
+                    <ion-button size="small" color="danger" onclick="deleteProduct(${product.id})">${texts[language].delete}</ion-button>
+                </ion-buttons>
+            `;
+            productList.appendChild(productItem);
+        });
+    }
+
+    async function openProductModal(productId = null) {
+        let product = {
+            name_zh: '',
+            name_es: '',
+            description_zh: '',
+            description_es: '',
+            price: '',
+            availability: true,
+            category_id: '',
+            image_base64: ''
+        };
+        let isEdit = false;
+
+        if (productId) {
+            isEdit = true;
+            const { data, error } = await supabase.from('menu_products').select('*').eq('id', productId).single();
+            if (error) {
+                console.error('Error fetching product:', error);
+                return;
+            }
+            product = data;
+        }
+
+        const { data: categories } = await supabase.from('menu_categories').select('*');
+
+        const modal = await modalController.create({
+            component: {
+                template: `
+                    <ion-header>
+                        <ion-toolbar>
+                            <ion-title>${isEdit ? texts[language].editProduct : texts[language].addProduct}</ion-title>
+                            <ion-buttons slot="end">
+                                <ion-button onclick="modalController.dismiss()">${texts[language].cancel}</ion-button>
+                            </ion-buttons>
+                        </ion-toolbar>
+                    </ion-header>
+                    <ion-content>
+                        <ion-list>
+                            <ion-item>
+                                <ion-label position="stacked">${texts[language].nameZh}</ion-label>
+                                <ion-input id="name-zh" value="${product.name_zh}"></ion-input>
+                            </ion-item>
+                            <ion-item>
+                                <ion-label position="stacked">${texts[language].nameEs}</ion-label>
+                                <ion-input id="name-es" value="${product.name_es}"></ion-input>
+                            </ion-item>
+                            <ion-item>
+                                <ion-label position="stacked">${texts[language].descriptionZh}</ion-label>
+                                <ion-textarea id="description-zh">${product.description_zh}</ion-textarea>
+                            </ion-item>
+                            <ion-item>
+                                <ion-label position="stacked">${texts[language].descriptionEs}</ion-label>
+                                <ion-textarea id="description-es">${product.description_es}</ion-textarea>
+                            </ion-item>
+                            <ion-item>
+                                <ion-label position="stacked">${texts[language].price}</ion-label>
+                                <ion-input id="price" type="number" value="${product.price}"></ion-input>
+                            </ion-item>
+                            <ion-item>
+                                <ion-label>${texts[language].availability}</ion-label>
+                                <ion-toggle id="availability" checked="${product.availability}"></ion-toggle>
+                            </ion-item>
+                            <ion-item>
+                                <ion-label>${texts[language].category}</ion-label>
+                                <ion-select id="category-id" value="${product.category_id}">
+                                    ${categories.map(cat => `
+                                        <ion-select-option value="${cat.id}">
+                                            ${language === 'zh' ? cat.name_zh : cat.name_es}
+                                        </ion-select-option>
+                                    `).join('')}
+                                </ion-select>
+                            </ion-item>
+                            <ion-item>
+                                <ion-label position="stacked">${texts[language].image}</ion-label>
+                                <input type="file" id="image-file" accept="image/*">
+                            </ion-item>
+                        </ion-list>
+                    </ion-content>
+                    <ion-footer>
+                        <ion-toolbar>
+                            <ion-button expand="block" id="save-product-btn">${texts[language].save}</ion-button>
+                        </ion-toolbar>
+                    </ion-footer>
+                `,
+                mounted() {
+                    document.getElementById('save-product-btn').addEventListener('click', this.saveProduct.bind(this));
+                },
+                methods: {
+                    async saveProduct() {
+                        const nameZh = document.getElementById('name-zh').value.trim();
+                        const nameEs = document.getElementById('name-es').value.trim();
+                        const descriptionZh = document.getElementById('description-zh').value.trim();
+                        const descriptionEs = document.getElementById('description-es').value.trim();
+                        const price = parseFloat(document.getElementById('price').value);
+                        const availability = document.getElementById('availability').checked;
+                        const categoryId = parseInt(document.getElementById('category-id').value);
+                        const imageFile = document.getElementById('image-file').files[0];
+
+                        let imageBase64 = product.image_base64;
+                        if (imageFile) {
+                            const reader = new FileReader();
+                            reader.onloadend = async () => {
+                                imageBase64 = reader.result.split(',')[1];
+                                await this.saveToDatabase();
+                            };
+                            reader.readAsDataURL(imageFile);
+                        } else {
+                            await this.saveToDatabase();
+                        }
+
+                        async function saveToDatabase() {
+                            const productData = {
+                                name_zh: nameZh,
+                                name_es: nameEs,
+                                description_zh: descriptionZh,
+                                description_es: descriptionEs,
+                                price: price,
+                                availability: availability,
+                                category_id: categoryId,
+                                image_base64: imageBase64
+                            };
+                            if (isEdit) {
+                                const { error } = await supabase.from('menu_products').update(productData).eq('id', productId);
+                                if (error) {
+                                    console.error('Error updating product:', error);
+                                    return;
+                                }
+                            } else {
+                                const { error } = await supabase.from('menu_products').insert(productData);
+                                if (error) {
+                                    console.error('Error adding product:', error);
+                                    return;
+                                }
+                            }
+                            loadProducts();
+                            modalController.dismiss();
+                        }
                     }
-                    loadOrders();
                 }
+            },
+            swipeToClose: true,
+            presentingElement: document.querySelector('ion-app')
+        });
+        await modal.present();
+    }
+
+    async function deleteProduct(productId) {
+        const alert = await alertController.create({
+            header: texts[language].confirmDelete,
+            buttons: [
+                {
+                    text: texts[language].no,
+                    role: 'cancel'
+                },
+                {
+                    text: texts[language].yes,
+                    handler: async () => {
+                        const { error } = await supabase.from('menu_products').delete().eq('id', productId);
+                        if (error) {
+                            console.error('Error deleting product:', error);
+                            return;
+                        }
+                        loadProducts();
+                    }
+                }
+            ]
+        });
+        await alert.present();
+    }
+
+    // Categories Functions
+    async function loadCategories() {
+        const { data, error } = await supabase.from('menu_categories').select('*').order('id', { ascending: true });
+        if (error) {
+            console.error('Error loading categories:', error);
+            return;
+        }
+        const categoryList = document.getElementById('category-list');
+        categoryList.innerHTML = '';
+
+        if (data.length === 0) {
+            categoryList.innerHTML = `<p style="text-align: center; padding: 20px;">${texts[language].noCategories}</p>`;
+            return;
+        }
+
+        data.forEach(category => {
+            const categoryName = language === 'zh' ? category.name_zh : category.name_es;
+            const categoryItem = document.createElement('ion-item');
+            categoryItem.innerHTML = `
+                <ion-label>
+                    <h2>${categoryName}</h2>
+                </ion-label>
+                <ion-buttons slot="end">
+                    <ion-button size="small" color="primary" onclick="openCategoryModal(${category.id})">${texts[language].edit}</ion-button>
+                    <ion-button size="small" color="danger" onclick="deleteCategory(${category.id})">${texts[language].delete}</ion-button>
+                </ion-buttons>
+            `;
+            categoryList.appendChild(categoryItem);
+        });
+    }
+
+    async function openCategoryModal(categoryId = null) {
+        let category = {
+            name_zh: '',
+            name_es: '',
+            description_zh: '',
+            description_es: ''
+        };
+        let isEdit = false;
+
+        if (categoryId) {
+            isEdit = true;
+            const { data, error } = await supabase.from('menu_categories').select('*').eq('id', categoryId).single();
+            if (error) {
+                console.error('Error fetching category:', error);
+                return;
             }
-        ];
-        document.body.appendChild(prompt);
-        await prompt.present();
+            category = data;
+        }
+
+        const modal = await modalController.create({
+            component: {
+                template: `
+                    <ion-header>
+                        <ion-toolbar>
+                            <ion-title>${isEdit ? texts[language].editCategory : texts[language].addCategory}</ion-title>
+                            <ion-buttons slot="end">
+                                <ion-button onclick="modalController.dismiss()">${texts[language].cancel}</ion-button>
+                            </ion-buttons>
+                        </ion-toolbar>
+                    </ion-header>
+                    <ion-content>
+                        <ion-list>
+                            <ion-item>
+                                <ion-label position="stacked">${texts[language].nameZh}</ion-label>
+                                <ion-input id="name-zh" value="${category.name_zh}"></ion-input>
+                            </ion-item>
+                            <ion-item>
+                                <ion-label position="stacked">${texts[language].nameEs}</ion-label>
+                                <ion-input id="name-es" value="${category.name_es}"></ion-input>
+                            </ion-item>
+                            <ion-item>
+                                <ion-label position="stacked">${texts[language].descriptionZh}</ion-label>
+                                <ion-textarea id="description-zh">${category.description_zh}</ion-textarea>
+                            </ion-item>
+                            <ion-item>
+                                <ion-label position="stacked">${texts[language].descriptionEs}</ion-label>
+                                <ion-textarea id="description-es">${category.description_es}</ion-textarea>
+                            </ion-item>
+                        </ion-list>
+                    </ion-content>
+                    <ion-footer>
+                        <ion-toolbar>
+                            <ion-button expand="block" id="save-category-btn">${texts[language].save}</ion-button>
+                        </ion-toolbar>
+                    </ion-footer>
+                `,
+                mounted() {
+                    document.getElementById('save-category-btn').addEventListener('click', this.saveCategory.bind(this));
+                },
+                methods: {
+                    async saveCategory() {
+                        const nameZh = document.getElementById('name-zh').value.trim();
+                        const nameEs = document.getElementById('name-es').value.trim();
+                        const descriptionZh = document.getElementById('description-zh').value.trim();
+                        const descriptionEs = document.getElementById('description-es').value.trim();
+
+                        const categoryData = {
+                            name_zh: nameZh,
+                            name_es: nameEs,
+                            description_zh: descriptionZh,
+                            description_es: descriptionEs
+                        };
+                        if (isEdit) {
+                            const { error } = await supabase.from('menu_categories').update(categoryData).eq('id', categoryId);
+                            if (error) {
+                                console.error('Error updating category:', error);
+                                return;
+                            }
+                        } else {
+                            const { error } = await supabase.from('menu_categories').insert(categoryData);
+                            if (error) {
+                                console.error('Error adding category:', error);
+                                return;
+                            }
+                        }
+                        loadCategories();
+                        modalController.dismiss();
+                    }
+                }
+            },
+            swipeToClose: true,
+            presentingElement: document.querySelector('ion-app')
+        });
+        await modal.present();
+    }
+
+    async function deleteCategory(categoryId) {
+        const alert = await alertController.create({
+            header: texts[language].confirmDelete,
+            buttons: [
+                {
+                    text: texts[language].no,
+                    role: 'cancel'
+                },
+                {
+                    text: texts[language].yes,
+                    handler: async () => {
+                        const { error } = await supabase.from('menu_categories').delete().eq('id', categoryId);
+                        if (error) {
+                            console.error('Error deleting category:', error);
+                            return;
+                        }
+                        loadCategories();
+                    }
+                }
+            ]
+        });
+        await alert.present();
     }
 
     document.addEventListener('DOMContentLoaded', function() {
