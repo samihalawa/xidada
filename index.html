@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <title>喜大大 XIDADA - 美味菜单</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <!-- Ionic Framework CSS -->
     <link href="https://cdn.jsdelivr.net/npm/@ionic/core/css/ionic.bundle.css" rel="stylesheet">
     <!-- Custom Styles -->
     <style>
         /* Global Styles */
-        body, html {
+        html, body, ion-app, ion-content {
+            height: 100%;
             margin: 0;
             font-family: 'Helvetica Neue', Arial, sans-serif;
             background-color: #fff;
@@ -18,16 +19,13 @@
             --background: #ff4757;
             --color: #fff;
         }
-        ion-content {
-            --background: #f1f2f6;
-        }
         /* Landing Page Styles */
-        .landing-page {
+        #landing-page {
             text-align: center;
             background: url('https://example.com/landing-image.jpg') no-repeat center center fixed;
             background-size: cover;
             color: #fff;
-            height: 100vh;
+            height: 100%;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -99,10 +97,18 @@
         .cart-item-quantity {
             display: flex;
             align-items: center;
+            justify-content: center;
+            margin: 10px 0;
         }
         .quantity-button {
             font-size: 24px;
             padding: 5px;
+        }
+        .quantity-input {
+            width: 50px;
+            text-align: center;
+            font-size: 18px;
+            margin: 0 10px;
         }
     </style>
     <!-- Ionic Framework JS -->
@@ -115,7 +121,7 @@
 
 <ion-app>
     <!-- Landing Page -->
-    <div id="landing-page" class="landing-page">
+    <div id="landing-page">
         <ion-button class="language-toggle" onclick="toggleLanguage()"></ion-button>
         <div>
             <div class="landing-title">喜大大 XIDADA</div>
@@ -145,51 +151,12 @@
                 <ion-badge color="danger" id="cart-count">0</ion-badge>
             </ion-fab-button>
         </ion-fab>
-
-        <!-- Product Detail Modal -->
-        <ion-modal id="product-modal">
-            <ion-header>
-                <ion-toolbar>
-                    <ion-title id="product-modal-title"></ion-title>
-                    <ion-buttons slot="end">
-                        <ion-button onclick="closeProductModal()"></ion-button>
-                    </ion-buttons>
-                </ion-toolbar>
-            </ion-header>
-            <ion-content id="product-modal-content">
-                <!-- Product Details will be dynamically loaded here -->
-            </ion-content>
-        </ion-modal>
-
-        <!-- Cart Modal -->
-        <ion-modal id="cart-modal">
-            <ion-header>
-                <ion-toolbar>
-                    <ion-title id="cart-title"></ion-title>
-                    <ion-buttons slot="end">
-                        <ion-button onclick="closeCart()"></ion-button>
-                    </ion-buttons>
-                </ion-toolbar>
-            </ion-header>
-            <ion-content id="cart-content">
-                <!-- Cart Items will be dynamically loaded here -->
-            </ion-content>
-            <ion-footer>
-                <ion-toolbar>
-                    <ion-title id="total-price"></ion-title>
-                    <ion-buttons slot="end">
-                        <ion-button color="success" onclick="confirmOrder()"></ion-button>
-                    </ion-buttons>
-                </ion-toolbar>
-            </ion-footer>
-        </ion-modal>
-
-        <!-- Order Confirmation Alert -->
-        <ion-alert id="order-confirmation-alert"></ion-alert>
     </div>
 </ion-app>
 
-<script>
+<script type="module">
+    import { modalController, alertController, toastController } from 'https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.esm.js';
+
     // Supabase Initialization
     const SUPABASE_URL = 'https://wqhyfotqobtrtxsjmkmr.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndxaHlmb3Rxb2J0cnR4c2pta21yIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcxNzAxNzIyMiwiZXhwIjoyMDMyNTkzMjIyfQ.1IFmf1XqQcwwHX9YvLLUKYYGLjILpvJHWHH0nWt8LoI';
@@ -258,13 +225,10 @@
         document.querySelector('.start-button').innerText = texts[language].viewMenu;
         document.getElementById('landing-subtitle').innerText = texts[language].welcome;
         document.querySelector('.language-toggle').innerText = texts[language].languageToggle;
-        document.getElementById('language-toggle').innerText = texts[language].languageToggle;
-        document.getElementById('app-title').innerText = texts[language].appTitle;
-        document.getElementById('cart-title').innerText = texts[language].cart;
-        document.getElementById('product-modal-title').innerText = texts[language].productDetails;
-        document.querySelector('ion-button[onclick="closeCart()"]').innerText = texts[language].close;
-        document.querySelector('ion-button[onclick="closeProductModal()"]').innerText = texts[language].close;
-        document.querySelector('ion-button[onclick="confirmOrder()"]').innerText = texts[language].placeOrder;
+        const languageToggle = document.getElementById('language-toggle');
+        if (languageToggle) languageToggle.innerText = texts[language].languageToggle;
+        const appTitle = document.getElementById('app-title');
+        if (appTitle) appTitle.innerText = texts[language].appTitle;
     }
 
     // Define the 'enterMenu' function
@@ -337,7 +301,10 @@
                     const addButton = document.createElement('ion-button');
                     addButton.textContent = texts[language].addToCart;
                     addButton.setAttribute('expand', 'block');
-                    addButton.addEventListener('click', () => addToCart(product.id));
+                    addButton.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        addToCart(product.id);
+                    });
 
                     productInfo.appendChild(addButton);
                     productCard.appendChild(productImage);
@@ -348,58 +315,71 @@
         });
     }
 
-    function openProductModal(product) {
-        const modal = document.querySelector('#product-modal');
-        const content = document.getElementById('product-modal-content');
-        const productName = language === 'zh' ? product.name_zh : product.name_es;
-        const productDescription = language === 'zh' ? product.description_zh : product.description_es;
+    async function openProductModal(product) {
+        const modal = await modalController.create({
+            component: ProductModalContent,
+            componentProps: { product },
+            swipeToClose: true,
+            presentingElement: document.querySelector('ion-app')
+        });
+        await modal.present();
+    }
 
-        document.getElementById('product-modal-title').innerText = productName;
+    const ProductModalContent = {
+        render() {
+            return `
+                <ion-header>
+                    <ion-toolbar>
+                        <ion-title>${this.productName}</ion-title>
+                        <ion-buttons slot="end">
+                            <ion-button onclick="modalController.dismiss()">${texts[language].close}</ion-button>
+                        </ion-buttons>
+                    </ion-toolbar>
+                </ion-header>
+                <ion-content>
+                    <ion-img src="${this.productImage}" alt="${this.productName}" style="width: 100%; height: auto;"></ion-img>
+                    <div style="padding: 15px;">
+                        <p>${this.productDescription}</p>
+                        <p>${texts[language].price}: ¥${this.product.price.toFixed(2)}</p>
+                        <div class="cart-item-quantity">
+                            <ion-button class="quantity-button" id="decrease-btn">${texts[language].decrease}</ion-button>
+                            <ion-input id="product-quantity" class="quantity-input" type="number" value="1" min="1" readonly></ion-input>
+                            <ion-button class="quantity-button" id="increase-btn">${texts[language].increase}</ion-button>
+                        </div>
+                        <ion-button expand="block" id="add-to-cart-btn">${texts[language].addToCart}</ion-button>
+                    </div>
+                </ion-content>
+            `;
+        },
+        props: ['product'],
+        mounted() {
+            this.productName = language === 'zh' ? this.product.name_zh : this.product.name_es;
+            this.productDescription = language === 'zh' ? this.product.description_zh : this.product.description_es;
+            this.productImage = `data:image/jpeg;base64,${this.product.image_base64}`;
+            this.quantity = 1;
 
-        content.innerHTML = `
-            <ion-img src="data:image/jpeg;base64,${product.image_base64}" alt="${productName}" style="width: 100%; height: auto;"></ion-img>
-            <div style="padding: 15px;">
-                <p>${productDescription}</p>
-                <p>${texts[language].price}: ¥${product.price.toFixed(2)}</p>
-                <div class="cart-item-quantity">
-                    <ion-button class="quantity-button" onclick="decreaseQuantity()">${texts[language].decrease}</ion-button>
-                    <ion-input id="product-quantity" type="number" value="1" min="1" readonly style="text-align: center;"></ion-input>
-                    <ion-button class="quantity-button" onclick="increaseQuantity()">${texts[language].increase}</ion-button>
-                </div>
-                <ion-button expand="block" onclick="addToCart(${product.id}, true)">${texts[language].addToCart}</ion-button>
-            </div>
-        `;
-
-        modal.present();
-
-        function increaseQuantity() {
-            const quantityInput = document.getElementById('product-quantity');
-            quantityInput.value = parseInt(quantityInput.value) + 1;
-        }
-
-        function decreaseQuantity() {
-            const quantityInput = document.getElementById('product-quantity');
-            if (parseInt(quantityInput.value) > 1) {
-                quantityInput.value = parseInt(quantityInput.value) - 1;
+            document.getElementById('increase-btn').addEventListener('click', () => this.increaseQuantity());
+            document.getElementById('decrease-btn').addEventListener('click', () => this.decreaseQuantity());
+            document.getElementById('add-to-cart-btn').addEventListener('click', () => {
+                addToCart(this.product.id, this.quantity);
+                modalController.dismiss();
+            });
+        },
+        methods: {
+            increaseQuantity() {
+                this.quantity++;
+                document.getElementById('product-quantity').value = this.quantity;
+            },
+            decreaseQuantity() {
+                if (this.quantity > 1) {
+                    this.quantity--;
+                    document.getElementById('product-quantity').value = this.quantity;
+                }
             }
         }
+    };
 
-        // Expose functions to the global scope
-        window.increaseQuantity = increaseQuantity;
-        window.decreaseQuantity = decreaseQuantity;
-    }
-
-    function closeProductModal() {
-        const modal = document.querySelector('#product-modal');
-        modal.dismiss();
-    }
-
-    function addToCart(productId, fromModal = false) {
-        let quantity = 1;
-        if (fromModal) {
-            quantity = parseInt(document.getElementById('product-quantity').value);
-            closeProductModal();
-        }
+    function addToCart(productId, quantity = 1) {
         const productIndex = cart.findIndex(item => item.productId === productId);
         if (productIndex > -1) {
             cart[productIndex].quantity += quantity;
@@ -407,11 +387,7 @@
             cart.push({ productId, quantity: quantity });
         }
         updateCartCount();
-        const toast = document.createElement('ion-toast');
-        toast.message = texts[language].addToCart;
-        toast.duration = 2000;
-        document.body.appendChild(toast);
-        toast.present();
+        showToast(texts[language].addToCart);
     }
 
     function updateCartCount() {
@@ -419,143 +395,177 @@
         document.getElementById('cart-count').innerText = cartCount;
     }
 
+    document.getElementById('open-cart').addEventListener('click', openCart);
+
     async function openCart() {
-        const modal = document.querySelector('#cart-modal');
-        const cartContent = document.getElementById('cart-content');
-        const totalPriceLabel = document.getElementById('total-price');
-
-        cartContent.innerHTML = ''; // Clear existing content
-
-        if (cart.length === 0) {
-            cartContent.innerHTML = `<p style="text-align: center; padding: 20px;">${texts[language].cartEmpty}</p>`;
-            totalPriceLabel.innerText = `${texts[language].total}: ¥0.00`;
-            await modal.present();
-            return;
-        }
-
-        let totalPrice = 0;
-
-        for (const item of cart) {
-            const { data: product, error } = await supabase
-                .from('menu_products')
-                .select('*')
-                .eq('id', item.productId)
-                .single();
-
-            if (error) {
-                console.error('Error fetching product:', error);
-                continue;
-            }
-
-            const productName = language === 'zh' ? product.name_zh : product.name_es;
-            const itemPrice = product.price * item.quantity;
-            totalPrice += itemPrice;
-
-            const itemElement = document.createElement('ion-item');
-            itemElement.innerHTML = `
-                <ion-label>
-                    <h2>${productName}</h2>
-                    <p>${texts[language].quantity}: ${item.quantity}</p>
-                    <p>${texts[language].price}: ¥${itemPrice.toFixed(2)}</p>
-                </ion-label>
-                <ion-button slot="end" color="danger" onclick="removeFromCart(${product.id})">${texts[language].remove}</ion-button>
-            `;
-            cartContent.appendChild(itemElement);
-        }
-
-        totalPriceLabel.innerText = `${texts[language].total}: ¥${totalPrice.toFixed(2)}`;
+        const modal = await modalController.create({
+            component: CartModalContent,
+            swipeToClose: true,
+            presentingElement: document.querySelector('ion-app')
+        });
         await modal.present();
     }
 
-    function closeCart() {
-        const modal = document.querySelector('#cart-modal');
-        modal.dismiss();
-    }
+    const CartModalContent = {
+        render() {
+            return `
+                <ion-header>
+                    <ion-toolbar>
+                        <ion-title>${texts[language].cart}</ion-title>
+                        <ion-buttons slot="end">
+                            <ion-button onclick="modalController.dismiss()">${texts[language].close}</ion-button>
+                        </ion-buttons>
+                    </ion-toolbar>
+                </ion-header>
+                <ion-content id="cart-content">
+                    <!-- Cart Items will be dynamically loaded here -->
+                </ion-content>
+                <ion-footer>
+                    <ion-toolbar>
+                        <ion-title id="total-price"></ion-title>
+                        <ion-buttons slot="end">
+                            <ion-button color="success" id="confirm-order-btn">${texts[language].placeOrder}</ion-button>
+                        </ion-buttons>
+                    </ion-toolbar>
+                </ion-footer>
+            `;
+        },
+        mounted() {
+            this.loadCartItems();
+            document.getElementById('confirm-order-btn').addEventListener('click', () => this.confirmOrder());
+        },
+        methods: {
+            async loadCartItems() {
+                const cartContent = document.getElementById('cart-content');
+                const totalPriceLabel = document.getElementById('total-price');
+                cartContent.innerHTML = ''; // Clear existing content
+
+                if (cart.length === 0) {
+                    cartContent.innerHTML = `<p style="text-align: center; padding: 20px;">${texts[language].cartEmpty}</p>`;
+                    totalPriceLabel.innerText = `${texts[language].total}: ¥0.00`;
+                    return;
+                }
+
+                let totalPrice = 0;
+
+                for (const item of cart) {
+                    const { data: product, error } = await supabase
+                        .from('menu_products')
+                        .select('*')
+                        .eq('id', item.productId)
+                        .single();
+
+                    if (error) {
+                        console.error('Error fetching product:', error);
+                        continue;
+                    }
+
+                    const productName = language === 'zh' ? product.name_zh : product.name_es;
+                    const itemPrice = product.price * item.quantity;
+                    totalPrice += itemPrice;
+
+                    const itemElement = document.createElement('ion-item');
+                    itemElement.innerHTML = `
+                        <ion-label>
+                            <h2>${productName}</h2>
+                            <p>${texts[language].quantity}: ${item.quantity}</p>
+                            <p>${texts[language].price}: ¥${itemPrice.toFixed(2)}</p>
+                        </ion-label>
+                        <ion-button slot="end" color="danger" onclick="removeFromCart(${product.id})">${texts[language].remove}</ion-button>
+                    `;
+                    cartContent.appendChild(itemElement);
+                }
+
+                totalPriceLabel.innerText = `${texts[language].total}: ¥${totalPrice.toFixed(2)}`;
+            },
+            async confirmOrder() {
+                if (cart.length === 0) {
+                    showAlert(texts[language].cartEmpty);
+                    return;
+                }
+
+                const alert = await alertController.create({
+                    header: texts[language].confirmOrder,
+                    buttons: [
+                        {
+                            text: texts[language].close,
+                            role: 'cancel'
+                        },
+                        {
+                            text: texts[language].placeOrder,
+                            handler: () => this.placeOrder()
+                        }
+                    ]
+                });
+                await alert.present();
+            },
+            async placeOrder() {
+                // Insert order
+                const { data: order, error: orderError } = await supabase
+                    .from('menu_orders')
+                    .insert({ table_number: tableNumber })
+                    .select()
+                    .single();
+
+                if (orderError) {
+                    console.error('Error creating order:', orderError);
+                    showToast(texts[language].orderFailure);
+                    return;
+                }
+
+                // Insert order items
+                for (const item of cart) {
+                    const { data: product, error } = await supabase
+                        .from('menu_products')
+                        .select('price')
+                        .eq('id', item.productId)
+                        .single();
+
+                    if (error) {
+                        console.error('Error fetching product price:', error);
+                        continue;
+                    }
+
+                    await supabase.from('menu_order_items').insert({
+                        order_id: order.id,
+                        product_id: item.productId,
+                        quantity: item.quantity,
+                        price: product.price
+                    });
+                }
+
+                showToast(texts[language].orderSuccess);
+
+                cart = []; // Clear cart
+                updateCartCount();
+                modalController.dismiss();
+            }
+        }
+    };
 
     function removeFromCart(productId) {
         cart = cart.filter(item => item.productId !== productId);
         updateCartCount();
-        openCart();
+        document.querySelector('ion-modal').componentOnReady().then(modal => {
+            modal.component.loadCartItems();
+        });
     }
 
-    async function confirmOrder() {
-        const alert = document.createElement('ion-alert');
-        alert.header = texts[language].confirmOrder;
-        alert.buttons = [
-            {
-                text: texts[language].close,
-                role: 'cancel'
-            },
-            {
-                text: texts[language].placeOrder,
-                handler: () => placeOrder()
-            }
-        ];
-        document.body.appendChild(alert);
-        await alert.present();
+    function showToast(message) {
+        toastController.create({
+            message: message,
+            duration: 2000
+        }).then(toast => toast.present());
     }
 
-    async function placeOrder() {
-        if (cart.length === 0) {
-            const alert = document.createElement('ion-alert');
-            alert.header = texts[language].cartEmpty;
-            alert.buttons = ['OK'];
-            document.body.appendChild(alert);
-            await alert.present();
-            return;
-        }
-
-        // Insert order
-        const { data: order, error: orderError } = await supabase
-            .from('menu_orders')
-            .insert({ table_number: tableNumber })
-            .select()
-            .single();
-
-        if (orderError) {
-            console.error('Error creating order:', orderError);
-            const toast = document.createElement('ion-toast');
-            toast.message = texts[language].orderFailure;
-            toast.duration = 2000;
-            document.body.appendChild(toast);
-            toast.present();
-            return;
-        }
-
-        // Insert order items
-        for (const item of cart) {
-            const { data: product, error } = await supabase
-                .from('menu_products')
-                .select('price')
-                .eq('id', item.productId)
-                .single();
-
-            if (error) {
-                console.error('Error fetching product price:', error);
-                continue;
-            }
-
-            await supabase.from('menu_order_items').insert({
-                order_id: order.id,
-                product_id: item.productId,
-                quantity: item.quantity,
-                price: product.price
-            });
-        }
-
-        const toast = document.createElement('ion-toast');
-        toast.message = texts[language].orderSuccess;
-        toast.duration = 2000;
-        document.body.appendChild(toast);
-        toast.present();
-
-        cart = []; // Clear cart
-        updateCartCount();
-        closeCart();
+    function showAlert(message) {
+        alertController.create({
+            header: message,
+            buttons: ['OK']
+        }).then(alert => alert.present());
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-        document.getElementById('open-cart').addEventListener('click', openCart);
         localize();
     });
 </script>
