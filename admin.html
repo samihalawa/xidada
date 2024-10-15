@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>喜大大 XIDADA - 管理后台</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Ionic Framework CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/@ionic/core/css/ionic.bundle.css" rel="stylesheet">
+    <!-- Custom Styles -->
+    <style>
+        /* Global Styles */
+        body, html {
+            margin: 0;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f1f2f6;
+        }
+        ion-header, ion-toolbar {
+            --background: #2f3542;
+            --color: #fff;
+        }
+        ion-content {
+            --background: #f1f2f6;
+        }
+        .language-toggle {
+            position: absolute;
+            right: 16px;
+        }
+        .tab-content {
+            padding: 10px;
+        }
+        .order-item {
+            background-color: #fff;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .order-item:hover {
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .order-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .order-id {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .order-status {
+            font-size: 16px;
+            color: #57606f;
+        }
+        /* Responsive Grid */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+        }
+    </style>
+    <!-- Ionic Framework JS -->
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.esm.js"></script>
+    <script nomodule src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.js"></script>
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<ion-app>
+    <ion-header>
+        <ion-toolbar>
+            <ion-title id="app-title">喜大大 - 管理后台</ion-title>
+            <ion-buttons slot="end" class="language-toggle">
+                <ion-button id="language-toggle" onclick="toggleLanguage()"></ion-button>
+            </ion-buttons>
+        </ion-toolbar>
+    </ion-header>
+
+    <ion-tabs>
+
+        <ion-tab tab="orders">
+            <ion-content>
+                <div class="tab-content">
+                    <div class="grid" id="order-list">
+                        <!-- Order Items -->
+                    </div>
+                </div>
+            </ion-content>
+        </ion-tab>
+
+        <ion-tab-bar slot="bottom">
+            <ion-tab-button tab="orders">
+                <ion-icon name="receipt"></ion-icon>
+                <ion-label id="orders-tab-label"></ion-label>
+            </ion-tab-button>
+        </ion-tab-bar>
+
+    </ion-tabs>
+</ion-app>
+
+<script>
+   Gimme all of them with those keys hardcoded
+
+const SUPABASE_URL = 'https://wqhyfotqobtrtxsjmkmr.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndxaHlmb3Rxb2J0cnR4c2pta21yIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcxNzAxNzIyMiwiZXhwIjoyMDMyNTkzMjIyfQ.1IFmf1XqQcwwHX9YvLLUKYYGLjILpvJHWHH0nWt8LoI';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // Global Variables
+    let language = 'zh'; // Default language: Chinese
+
+    // Localization Texts
+    const texts = {
+        zh: {
+            appTitle: '喜大大 - 管理后台',
+            ordersTab: '订单',
+            languageToggle: 'Español',
+            orderNumber: '订单号',
+            tableNumber: '桌号',
+            status: '状态',
+            updateStatus: '更新状态',
+            items: '项目',
+            quantity: '数量',
+            price: '价格',
+            total: '总计',
+            newStatus: '输入新的订单状态',
+            cancel: '取消',
+            save: '保存',
+        },
+        es: {
+            appTitle: 'XIDADA - Administración',
+            ordersTab: 'Pedidos',
+            languageToggle: '中文',
+            orderNumber: 'Pedido',
+            tableNumber: 'Mesa',
+            status: 'Estado',
+            updateStatus: 'Actualizar Estado',
+            items: 'Artículos',
+            quantity: 'Cantidad',
+            price: 'Precio',
+            total: 'Total',
+            newStatus: 'Ingrese el nuevo estado del pedido',
+            cancel: 'Cancelar',
+            save: 'Guardar',
+        }
+    };
+
+    function localize() {
+        document.getElementById('language-toggle').innerText = texts[language].languageToggle;
+        document.getElementById('app-title').innerText = texts[language].appTitle;
+        document.getElementById('orders-tab-label').innerText = texts[language].ordersTab;
+        loadOrders();
+    }
+
+    async function loadOrders() {
+        const { data, error } = await supabase.from('menu_orders').select('*').order('created_at', { ascending: false });
+        if (error) {
+            console.error('Error loading orders:', error);
+            return;
+        }
+        const orderList = document.getElementById('order-list');
+        orderList.innerHTML = '';
+        data.forEach(order => {
+            const orderItem = document.createElement('div');
+            orderItem.classList.add('order-item');
+            orderItem.innerHTML = `
+                <div class="order-info">
+                    <div>
+                        <p class="order-id">${texts[language].orderNumber} #${order.id}</p>
+                        <p class="order-status">${texts[language].status}: ${order.status}</p>
+                        <p>${texts[language].tableNumber}: ${order.table_number}</p>
+                    </div>
+                    <ion-button onclick="changeOrderStatus(${order.id})">${texts[language].updateStatus}</ion-button>
+                </div>
+                <div id="order-items-${order.id}"></div>
+            `;
+            orderList.appendChild(orderItem);
+            loadOrderItems(order.id);
+        });
+    }
+
+    async function loadOrderItems(orderId) {
+        const { data, error } = await supabase
+            .from('menu_order_items')
+            .select('quantity, price, menu_products(name_zh, name_es)')
+            .eq('order_id', orderId);
+
+        if (error) {
+            console.error('Error loading order items:', error);
+            return;
+        }
+
+        const itemsContainer = document.getElementById(`order-items-${orderId}`);
+        itemsContainer.innerHTML = '<ul></ul>';
+        const itemsList = itemsContainer.querySelector('ul');
+
+        data.forEach(item => {
+            const productName = language === 'zh' ? item.menu_products.name_zh : item.menu_products.name_es;
+            const listItem = document.createElement('li');
+            listItem.innerHTML = `
+                ${productName} - ${texts[language].quantity}: ${item.quantity} - ${texts[language].price}: ¥${(item.price * item.quantity).toFixed(2)}
+            `;
+            itemsList.appendChild(listItem);
+        });
+    }
+
+    function toggleLanguage() {
+        language = language === 'zh' ? 'es' : 'zh';
+        localize();
+    }
+
+    async function changeOrderStatus(orderId) {
+        const prompt = document.createElement('ion-alert');
+        prompt.header = texts[language].updateStatus;
+        prompt.inputs = [
+            {
+                name: 'status',
+                type: 'text',
+                placeholder: texts[language].newStatus
+            }
+        ];
+        prompt.buttons = [
+            {
+                text: texts[language].cancel,
+                role: 'cancel'
+            },
+            {
+                text: texts[language].save,
+                handler: async (data) => {
+                    if (!data.status) return;
+                    const { error } = await supabase.from('menu_orders').update({ status: data.status }).eq('id', orderId);
+                    if (error) {
+                        console.error('Error updating order status:', error);
+                        return;
+                    }
+                    loadOrders();
+                }
+            }
+        ];
+        document.body.appendChild(prompt);
+        await prompt.present();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        localize();
+
+        // Real-time updates for orders
+        const orderSubscription = supabase
+            .channel('public:menu_orders')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'menu_orders' }, payload => {
+                loadOrders();
+            })
+            .subscribe();
+    });
+</script>
+</body>
+</html>
