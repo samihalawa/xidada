@@ -281,9 +281,6 @@
             errorLoadingProducts: '加载菜单产品时出错',
             loading: '加载中',
             addedToCart: '已添加到购物车',
-            noMenuItems: '没有可用的菜单项。',
-            noCategoryProducts: '没有产品。',
-            noImage: '没有图片',
         },
         es: {
             viewMenu: 'Entrar al Menú',
@@ -314,9 +311,6 @@
             errorLoadingProducts: 'Error al cargar productos de menú',
             loading: 'Cargando',
             addedToCart: 'Añadido al carrito',
-            noMenuItems: 'No hay elementos de menú disponibles en este momento.',
-            noCategoryProducts: 'No hay productos en esta categoría.',
-            noImage: 'Sin imagen',
         }
     };
 
@@ -346,16 +340,14 @@
         document.getElementById('main-app').style.display = 'block';
         showMenu();
         localize();
-        loadMenu();
     }
 
     function toggleLanguage() {
         language = language === 'zh' ? 'es' : 'zh';
         localStorage.setItem('language', language);
         localize();
-        if (document.getElementById('main-app').style.display !== 'none') {
-            loadMenu();
-        }
+        loadMenu();
+        updateCartCount();
     }
 
     function showMenu() {
@@ -388,79 +380,128 @@
                 return;
             }
 
-            renderMenu(categories, products);
+            const menuContent = document.getElementById('menu-content');
+            menuContent.innerHTML = '';
+
+            if (categories.length === 0) {
+                menuContent.innerHTML = `<p style="text-align: center; padding: 20px;">${language === 'zh' ? '目��没有可用的菜单项。' : 'No hay elementos de menú disponibles en este momento.'}</p>`;
+                return;
+            }
+
+            categories.forEach(category => {
+                const categoryName = language === 'zh' ? category.name_zh : category.name_es;
+
+                const categoryHeader = document.createElement('ion-item-divider');
+                categoryHeader.innerHTML = `<ion-label><h2>${categoryName}</h2></ion-label>`;
+                menuContent.appendChild(categoryHeader);
+
+                const categoryProducts = products.filter(product => product.category_id === category.id);
+
+                if (categoryProducts.length === 0) {
+                    const noProductsMessage = document.createElement('p');
+                    noProductsMessage.style.textAlign = 'center';
+                    noProductsMessage.style.padding = '10px';
+                    noProductsMessage.innerText = language === 'zh' ? '此类别暂无产品。' : 'No hay productos en esta categoría.';
+                    menuContent.appendChild(noProductsMessage);
+                } else {
+                    categoryProducts.forEach(product => {
+                        const productName = language === 'zh' ? product.name_zh : product.name_es;
+                        const productDescription = language === 'zh' ? product.description_zh : product.description_es;
+
+                        const productCard = document.createElement('div');
+                        productCard.classList.add('product-card');
+
+                        let productImage;
+                        if (product.image_base64) {
+                            productImage = new Image();
+                            productImage.src = `data:image/jpeg;base64,${product.image_base64}`;
+                            productImage.alt = productName;
+                            productImage.classList.add('product-image');
+                        } else {
+                            productImage = document.createElement('div');
+                            productImage.classList.add('default-product-image');
+                            productImage.innerText = language === 'zh' ? '暂无图片' : 'Sin imagen';
+                        }
+                        productImage.onclick = () => openProductModal(product);
+
+                        const productInfo = document.createElement('div');
+                        productInfo.classList.add('product-info');
+
+                        productInfo.innerHTML = `
+                            <p class="product-name">${productName}</p>
+                            <p class="product-price">¥${product.price.toFixed(2)}</p>
+                            <p class="product-description">${productDescription}</p>
+                        `;
+
+                        const addButton = document.createElement('ion-button');
+                        addButton.textContent = texts[language].addToCart;
+                        addButton.setAttribute('expand', 'block');
+                        addButton.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            handleAddToCart(product.id);
+                        });
+
+                        productInfo.appendChild(addButton);
+                        productCard.appendChild(productImage);
+                        productCard.appendChild(productInfo);
+
+                        menuContent.appendChild(productCard);
+                    });
+                }
+            });
         } finally {
             loading.dismiss();
         }
     }
 
-    function renderMenu(categories, products) {
-        const menuContent = document.getElementById('menu-content');
-        menuContent.innerHTML = '';
-
-        if (categories.length === 0) {
-            menuContent.innerHTML = `<p style="text-align: center; padding: 20px;">${texts[language].noMenuItems}</p>`;
-            return;
-        }
-
-        categories.forEach(category => {
-            const categoryName = language === 'zh' ? category.name_zh : category.name_es;
-
-            const categoryHeader = document.createElement('ion-item-divider');
-            categoryHeader.innerHTML = `<ion-label><h2>${categoryName}</h2></ion-label>`;
-            menuContent.appendChild(categoryHeader);
-
-            const categoryProducts = products.filter(product => product.category_id === category.id);
-
-            if (categoryProducts.length === 0) {
-                const noProductsMessage = document.createElement('p');
-                noProductsMessage.style.textAlign = 'center';
-                noProductsMessage.style.padding = '10px';
-                noProductsMessage.innerText = texts[language].noCategoryProducts;
-                menuContent.appendChild(noProductsMessage);
-            } else {
-                renderProducts(categoryProducts, menuContent);
-            }
-        });
-    }
-
-    function renderProducts(products, container) {
-        products.forEach(product => {
-            const productName = language === 'zh' ? product.name_zh : product.name_es;
-            const productDescription = language === 'zh' ? product.description_zh : product.description_es;
-
-            const productCard = document.createElement('div');
-            productCard.classList.add('product-card');
-
-            let productImage;
-            if (product.image_base64) {
-                productImage = `<img src="data:image/jpeg;base64,${product.image_base64}" alt="${productName}" class="product-image">`;
-            } else {
-                productImage = `<div class="default-product-image">${texts[language].noImage}</div>`;
-            }
-
-            productCard.innerHTML = `
-                ${productImage}
-                <div class="product-info">
-                    <p class="product-name">${productName}</p>
-                    <p class="product-price">¥${product.price.toFixed(2)}</p>
-                    <p class="product-description">${productDescription}</p>
-                    <ion-button expand="block" onclick="addToCart(${product.id})">${texts[language].addToCart}</ion-button>
-                </div>
-            `;
-
-            container.appendChild(productCard);
-        });
-    }
-
     async function openProductModal(product) {
         const modal = await modalController.create({
-            component: 'product-modal',
-            componentProps: {
-                product,
-                language,
-                texts: texts[language],
-                addToCart
+            component: {
+                template: `
+                    <ion-header>
+                        <ion-toolbar>
+                            <ion-title>${language === 'zh' ? product.name_zh : product.name_es}</ion-title>
+                            <ion-buttons slot="end">
+                                <ion-button onclick="modalController.dismiss()">${texts[language].close}</ion-button>
+                            </ion-buttons>
+                        </ion-toolbar>
+                    </ion-header>
+                    <ion-content>
+                        ${product.image_base64 ? `<ion-img src="data:image/jpeg;base64,${product.image_base64}" alt="${language === 'zh' ? product.name_zh : product.name_es}" style="width: 100%; height: auto;"></ion-img>` : `<div class="default-product-image">${language === 'zh' ? '暂无图片' : 'Sin imagen'}</div>`}
+                        <div style="padding: 15px;">
+                            <p>${language === 'zh' ? product.description_zh : product.description_es}</p>
+                            <p>${texts[language].price}: ¥${product.price.toFixed(2)}</p>
+                            <div class="cart-item-quantity">
+                                <ion-button class="quantity-button" id="decrease-btn">${texts[language].decrease}</ion-button>
+                                <ion-input id="product-quantity" class="quantity-input" type="number" value="1" min="1" readonly></ion-input>
+                                <ion-button class="quantity-button" id="increase-btn">${texts[language].increase}</ion-button>
+                            </div>
+                            <ion-button expand="block" id="add-to-cart-btn">${texts[language].addToCart}</ion-button>
+                        </div>
+                    </ion-content>
+                `,
+                methods: {
+                    increaseQuantity() {
+                        this.quantity++;
+                        document.getElementById('product-quantity').value = this.quantity;
+                    },
+                    decreaseQuantity() {
+                        if (this.quantity > 1) {
+                            this.quantity--;
+                            document.getElementById('product-quantity').value = this.quantity;
+                        }
+                    },
+                    addToCart() {
+                        addToCart(product.id, this.quantity);
+                        modalController.dismiss();
+                    }
+                },
+                mounted() {
+                    this.quantity = 1;
+                    document.getElementById('increase-btn').addEventListener('click', this.increaseQuantity.bind(this));
+                    document.getElementById('decrease-btn').addEventListener('click', this.decreaseQuantity.bind(this));
+                    document.getElementById('add-to-cart-btn').addEventListener('click', this.addToCart.bind(this));
+                }
             },
             swipeToClose: true,
             presentingElement: document.querySelector('ion-app')
@@ -633,7 +674,7 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         localize();
-        enterApp(); // This will call loadMenu() and show the main app
+        loadMenu();
         document.getElementById('open-cart').addEventListener('click', openCart);
         loadCartFromLocalStorage();
         const savedLanguage = localStorage.getItem('language');
@@ -714,7 +755,7 @@
     // Add service worker registration
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/service-worker.js')
+            navigator.serviceWorker.register('/xidada/service-worker.js')
                 .then(registration => {
                     console.log('Service Worker registered with scope:', registration.scope);
                 })

@@ -223,7 +223,7 @@
             edit: '编辑',
             delete: '删除',
             availability: '可用性',
-            addProduct: '��加产品',
+            addProduct: '添加产品',
             editProduct: '编辑产品',
             nameZh: '中文名称',
             nameEs: '西班牙语名称',
@@ -816,12 +816,12 @@
     }
 
     // Update DOMContentLoaded event listener
-    document.addEventListener('DOMContentLoaded', async function() {
-        await checkAuth();
+    document.addEventListener('DOMContentLoaded', function() {
+        checkAuth();
         localize();
-        await loadOrders();
-        await loadProducts();
-        await loadCategories();
+        loadOrders();
+        loadProducts();
+        loadCategories();
         subscribeToNewOrders();
     });
 

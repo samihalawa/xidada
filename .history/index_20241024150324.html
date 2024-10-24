@@ -434,20 +434,37 @@
 
             let productImage;
             if (product.image_base64) {
-                productImage = `<img src="data:image/jpeg;base64,${product.image_base64}" alt="${productName}" class="product-image">`;
+                productImage = new Image();
+                productImage.src = `data:image/jpeg;base64,${product.image_base64}`;
+                productImage.alt = productName;
+                productImage.classList.add('product-image');
             } else {
-                productImage = `<div class="default-product-image">${texts[language].noImage}</div>`;
+                productImage = document.createElement('div');
+                productImage.classList.add('default-product-image');
+                productImage.innerText = texts[language].noImage;
             }
+            productImage.onclick = () => openProductModal(product);
 
-            productCard.innerHTML = `
-                ${productImage}
-                <div class="product-info">
-                    <p class="product-name">${productName}</p>
-                    <p class="product-price">¥${product.price.toFixed(2)}</p>
-                    <p class="product-description">${productDescription}</p>
-                    <ion-button expand="block" onclick="addToCart(${product.id})">${texts[language].addToCart}</ion-button>
-                </div>
+            const productInfo = document.createElement('div');
+            productInfo.classList.add('product-info');
+
+            productInfo.innerHTML = `
+                <p class="product-name">${productName}</p>
+                <p class="product-price">¥${product.price.toFixed(2)}</p>
+                <p class="product-description">${productDescription}</p>
             `;
+
+            const addButton = document.createElement('ion-button');
+            addButton.textContent = texts[language].addToCart;
+            addButton.setAttribute('expand', 'block');
+            addButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                addToCart(product.id);
+            });
+
+            productInfo.appendChild(addButton);
+            productCard.appendChild(productImage);
+            productCard.appendChild(productInfo);
 
             container.appendChild(productCard);
         });
@@ -633,7 +650,7 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         localize();
-        enterApp(); // This will call loadMenu() and show the main app
+        loadMenu();
         document.getElementById('open-cart').addEventListener('click', openCart);
         loadCartFromLocalStorage();
         const savedLanguage = localStorage.getItem('language');
