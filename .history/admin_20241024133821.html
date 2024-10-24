@@ -186,7 +186,7 @@
 </ion-app>
 
 <script type="module">
-    import { modalController, alertController, toastController, loadingController } from 'https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.esm.js';
+    import { modalController, alertController, toastController } from 'https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.esm.js';
 
     // Supabase Initialization
     const SUPABASE_URL = 'https://wqhyfotqobtrtxsjmkmr.supabase.co';
@@ -226,7 +226,7 @@
             descriptionZh: '中文描述',
             descriptionEs: '西班牙语描述',
             image: '图片',
-            category: '类',
+            category: '类别',
             addCategory: '添加类别',
             editCategory: '编辑类别',
             noProducts: '当前没有产品。',
@@ -234,10 +234,6 @@
             confirmDelete: '确认删除？',
             yes: '是',
             no: '否',
-            nameZhRequired: '中文名称不能为空',
-            nameEsRequired: '西班牙语名称不能为空',
-            invalidPrice: '价格必须为正数',
-            categoryRequired: '类别不能为空',
         },
         es: {
             appTitle: 'XIDADA - Administración',
@@ -275,10 +271,6 @@
             confirmDelete: '¿Confirmar eliminación?',
             yes: 'Sí',
             no: 'No',
-            nameZhRequired: 'El nombre en chino no puede estar vacío',
-            nameEsRequired: 'El nombre en español no puede estar vacío',
-            invalidPrice: 'El precio debe ser un número positivo',
-            categoryRequired: 'La categoría no puede estar vacía',
         }
     };
 
@@ -295,19 +287,8 @@
 
     function toggleLanguage() {
         language = language === 'zh' ? 'es' : 'zh';
-        localStorage.setItem('adminLanguage', language);
         localize();
-        loadOrders();
-        loadProducts();
-        loadCategories();
     }
-
-    // In DOMContentLoaded event:
-    const savedLanguage = localStorage.getItem('adminLanguage');
-    if (savedLanguage) {
-        language = savedLanguage;
-    }
-    localize();
 
     // Orders Functions
     async function loadOrders() {
@@ -524,8 +505,7 @@
                             </ion-item>
                             <ion-item>
                                 <ion-label position="stacked">${texts[language].image}</ion-label>
-                                <input type="file" id="image-file" accept="image/*" onchange="previewImage(event)">
-                                <img id="image-preview" style="max-width: 100%; margin-top: 10px;">
+                                <input type="file" id="image-file" accept="image/*">
                             </ion-item>
                         </ion-list>
                     </ion-content>
@@ -554,48 +534,39 @@
                             const reader = new FileReader();
                             reader.onloadend = async () => {
                                 imageBase64 = reader.result.split(',')[1];
-                                await this.saveToDatabase(imageBase64);
+                                await this.saveToDatabase();
                             };
                             reader.readAsDataURL(imageFile);
                         } else {
-                            await this.saveToDatabase(imageBase64);
+                            await this.saveToDatabase();
                         }
-                    },
-                    async saveToDatabase(imageBase64) {
-                        const productData = {
-                            name_zh: nameZh,
-                            name_es: nameEs,
-                            description_zh: descriptionZh,
-                            description_es: descriptionEs,
-                            price: price,
-                            availability: availability,
-                            category_id: categoryId,
-                            image_base64: imageBase64
-                        };
-                        if (isEdit) {
-                            const { error } = await supabase.from('menu_products').update(productData).eq('id', productId);
-                            if (error) {
-                                console.error('Error updating product:', error);
-                                return;
-                            }
-                        } else {
-                            const { error } = await supabase.from('menu_products').insert(productData);
-                            if (error) {
-                                console.error('Error adding product:', error);
-                                return;
-                            }
-                        }
-                        loadProducts();
-                        modalController.dismiss();
-                    },
-                    previewImage(event) {
-                        const file = event.target.files[0];
-                        if (file) {
-                            const reader = new FileReader();
-                            reader.onload = (e) => {
-                                document.getElementById('image-preview').src = e.target.result;
+
+                        async function saveToDatabase() {
+                            const productData = {
+                                name_zh: nameZh,
+                                name_es: nameEs,
+                                description_zh: descriptionZh,
+                                description_es: descriptionEs,
+                                price: price,
+                                availability: availability,
+                                category_id: categoryId,
+                                image_base64: imageBase64
                             };
-                            reader.readAsDataURL(file);
+                            if (isEdit) {
+                                const { error } = await supabase.from('menu_products').update(productData).eq('id', productId);
+                                if (error) {
+                                    console.error('Error updating product:', error);
+                                    return;
+                                }
+                            } else {
+                                const { error } = await supabase.from('menu_products').insert(productData);
+                                if (error) {
+                                    console.error('Error adding product:', error);
+                                    return;
+                                }
+                            }
+                            loadProducts();
+                            modalController.dismiss();
                         }
                     }
                 }
@@ -609,23 +580,20 @@
     async function deleteProduct(productId) {
         const alert = await alertController.create({
             header: texts[language].confirmDelete,
-            message: texts[language].deleteProductConfirmation,
             buttons: [
                 {
-                    text: texts[language].cancel,
+                    text: texts[language].no,
                     role: 'cancel'
                 },
                 {
-                    text: texts[language].delete,
+                    text: texts[language].yes,
                     handler: async () => {
                         const { error } = await supabase.from('menu_products').delete().eq('id', productId);
                         if (error) {
                             console.error('Error deleting product:', error);
-                            showToast(texts[language].deleteProductError);
                             return;
                         }
                         loadProducts();
-                        showToast(texts[language].productDeleted);
                     }
                 }
             ]
@@ -761,41 +729,22 @@
     }
 
     async function deleteCategory(categoryId) {
-        const { data: products, error: productError } = await supabase
-            .from('menu_products')
-            .select('id')
-            .eq('category_id', categoryId);
-
-        if (productError) {
-            console.error('Error checking products in category:', productError);
-            showToast(texts[language].errorCheckingProducts);
-            return;
-        }
-
-        if (products.length > 0) {
-            showToast(texts[language].categoryHasProducts);
-            return;
-        }
-
         const alert = await alertController.create({
             header: texts[language].confirmDelete,
-            message: texts[language].deleteCategoryConfirmation,
             buttons: [
                 {
-                    text: texts[language].cancel,
+                    text: texts[language].no,
                     role: 'cancel'
                 },
                 {
-                    text: texts[language].delete,
+                    text: texts[language].yes,
                     handler: async () => {
                         const { error } = await supabase.from('menu_categories').delete().eq('id', categoryId);
                         if (error) {
                             console.error('Error deleting category:', error);
-                            showToast(texts[language].deleteCategoryError);
                             return;
                         }
                         loadCategories();
-                        showToast(texts[language].categoryDeleted);
                     }
                 }
             ]
@@ -820,24 +769,19 @@
 
     // Implement pagination for orders
     async function loadOrders(page = 1, pageSize = 10) {
-        const loading = showLoading();
-        try {
-            const { data, error, count } = await handleSupabaseOperation(
-                () => supabase
-                    .from('menu_orders')
-                    .select('*', { count: 'exact' })
-                    .order('created_at', { ascending: false })
-                    .range((page - 1) * pageSize, page * pageSize - 1),
-                texts[language].errorLoadingOrders
-            );
+        const { data, error, count } = await supabase
+            .from('menu_orders')
+            .select('*', { count: 'exact' })
+            .order('created_at', { ascending: false })
+            .range((page - 1) * pageSize, page * pageSize - 1);
 
-            if (error) return;
-
-            renderOrders(data);
-            renderPagination(page, pageSize, count);
-        } finally {
-            loading.dismiss();
+        if (error) {
+            console.error('Error loading orders:', error);
+            return;
         }
+
+        renderOrders(data);
+        renderPagination(page, pageSize, count);
     }
 
     function renderPagination(currentPage, pageSize, totalItems) {
@@ -896,85 +840,6 @@
         } finally {
             loading.dismiss();
         }
-    }
-
-    async function handleSupabaseOperation(operation, errorMessage) {
-        try {
-            const { data, error } = await operation();
-            if (error) throw error;
-            return data;
-        } catch (error) {
-            console.error(error);
-            showToast(errorMessage);
-            return null;
-        }
-    }
-
-    async function presentLoading() {
-        const loading = await loadingController.create({
-            message: texts[language].loading,
-            duration: 5000,
-        });
-        await loading.present();
-        return loading;
-    }
-
-    async function uploadImage(file) {
-        if (!file) return null;
-        
-        const reader = new FileReader();
-        return new Promise((resolve, reject) => {
-            reader.onload = (e) => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    const maxWidth = 800;
-                    const maxHeight = 600;
-                    let width = img.width;
-                    let height = img.height;
-
-                    if (width > height) {
-                        if (width > maxWidth) {
-                            height *= maxWidth / width;
-                            width = maxWidth;
-                        }
-                    } else {
-                        if (height > maxHeight) {
-                            width *= maxHeight / height;
-                            height = maxHeight;
-                        }
-                    }
-
-                    canvas.width = width;
-                    canvas.height = height;
-                    ctx.drawImage(img, 0, 0, width, height);
-                    
-                    const resizedImage = canvas.toDataURL('image/jpeg', 0.7);
-                    resolve(resizedImage.split(',')[1]);
-                };
-                img.onerror = reject;
-                img.src = e.target.result;
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-        });
-    }
-
-    function validateProductForm(productData) {
-        const errors = [];
-        if (!productData.name_zh.trim()) errors.push(texts[language].nameZhRequired);
-        if (!productData.name_es.trim()) errors.push(texts[language].nameEsRequired);
-        if (isNaN(productData.price) || productData.price <= 0) errors.push(texts[language].invalidPrice);
-        if (!productData.category_id) errors.push(texts[language].categoryRequired);
-        return errors;
-    }
-
-    // Use this function before saving the product
-    const errors = validateProductForm(productData);
-    if (errors.length > 0) {
-        showAlert(errors.join('\n'));
-        return;
     }
 </script>
 </body>

@@ -234,7 +234,7 @@
 </ion-app>
 
 <script type="module">
-    import { modalController, alertController, toastController, loadingController } from 'https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.esm.js';
+    import { modalController, alertController, toastController } from 'https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.esm.js';
 
     // Supabase Initialization
     const SUPABASE_URL = 'https://wqhyfotqobtrtxsjmkmr.supabase.co';
@@ -273,10 +273,6 @@
             aboutTab: '关于我们',
             aboutUsTitle: '关于我们',
             aboutUsContent: '欢迎来到喜大大餐厅，我们致力于为您提供最美味的中餐体验。感谢您的光临！',
-            errorLoadingCategories: '加载菜单类别时出错',
-            errorLoadingProducts: '加载菜单产品时出错',
-            loading: '加载中',
-            addedToCart: '已添加到购物车',
         },
         es: {
             viewMenu: 'Entrar al Menú',
@@ -303,10 +299,6 @@
             aboutTab: 'Acerca de Nosotros',
             aboutUsTitle: 'Acerca de Nosotros',
             aboutUsContent: 'Bienvenido al restaurante XIDADA, nos dedicamos a brindarle la mejor experiencia de comida china. ¡Gracias por visitarnos!',
-            errorLoadingCategories: 'Error al cargar categorías de menú',
-            errorLoadingProducts: 'Error al cargar productos de menú',
-            loading: 'Cargando',
-            addedToCart: 'Añadido al carrito',
         }
     };
 
@@ -340,7 +332,6 @@
 
     function toggleLanguage() {
         language = language === 'zh' ? 'es' : 'zh';
-        localStorage.setItem('language', language);
         localize();
         loadMenu();
         updateCartCount();
@@ -358,96 +349,94 @@
     }
 
     async function loadMenu() {
-        const loading = await presentLoading();
-        try {
-            const categories = await handleSupabaseOperation(
-                () => supabase.from('menu_categories').select('*'),
-                texts[language].errorLoadingCategories
-            );
-            if (!categories) return;
+        const { data: categories, error: categoryError } = await supabase
+            .from('menu_categories')
+            .select('*');
 
-            const { data: products, error: productError } = await supabase
-                .from('menu_products')
-                .select('*')
-                .eq('availability', true);
-
-            if (productError) {
-                showToast(texts[language].errorLoadingProducts);
-                return;
-            }
-
-            const menuContent = document.getElementById('menu-content');
-            menuContent.innerHTML = '';
-
-            if (categories.length === 0) {
-                menuContent.innerHTML = `<p style="text-align: center; padding: 20px;">${language === 'zh' ? '目前没有可用的菜单项。' : 'No hay elementos de menú disponibles en este momento.'}</p>`;
-                return;
-            }
-
-            categories.forEach(category => {
-                const categoryName = language === 'zh' ? category.name_zh : category.name_es;
-
-                const categoryHeader = document.createElement('ion-item-divider');
-                categoryHeader.innerHTML = `<ion-label><h2>${categoryName}</h2></ion-label>`;
-                menuContent.appendChild(categoryHeader);
-
-                const categoryProducts = products.filter(product => product.category_id === category.id);
-
-                if (categoryProducts.length === 0) {
-                    const noProductsMessage = document.createElement('p');
-                    noProductsMessage.style.textAlign = 'center';
-                    noProductsMessage.style.padding = '10px';
-                    noProductsMessage.innerText = language === 'zh' ? '此类别暂无产品。' : 'No hay productos en esta categoría.';
-                    menuContent.appendChild(noProductsMessage);
-                } else {
-                    categoryProducts.forEach(product => {
-                        const productName = language === 'zh' ? product.name_zh : product.name_es;
-                        const productDescription = language === 'zh' ? product.description_zh : product.description_es;
-
-                        const productCard = document.createElement('div');
-                        productCard.classList.add('product-card');
-
-                        let productImage;
-                        if (product.image_base64) {
-                            productImage = new Image();
-                            productImage.src = `data:image/jpeg;base64,${product.image_base64}`;
-                            productImage.alt = productName;
-                            productImage.classList.add('product-image');
-                        } else {
-                            productImage = document.createElement('div');
-                            productImage.classList.add('default-product-image');
-                            productImage.innerText = language === 'zh' ? '暂无图片' : 'Sin imagen';
-                        }
-                        productImage.onclick = () => openProductModal(product);
-
-                        const productInfo = document.createElement('div');
-                        productInfo.classList.add('product-info');
-
-                        productInfo.innerHTML = `
-                            <p class="product-name">${productName}</p>
-                            <p class="product-price">¥${product.price.toFixed(2)}</p>
-                            <p class="product-description">${productDescription}</p>
-                        `;
-
-                        const addButton = document.createElement('ion-button');
-                        addButton.textContent = texts[language].addToCart;
-                        addButton.setAttribute('expand', 'block');
-                        addButton.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            addToCart(product.id);
-                        });
-
-                        productInfo.appendChild(addButton);
-                        productCard.appendChild(productImage);
-                        productCard.appendChild(productInfo);
-
-                        menuContent.appendChild(productCard);
-                    });
-                }
-            });
-        } finally {
-            loading.dismiss();
+        if (categoryError) {
+            console.error('Error loading categories:', categoryError);
+            return;
         }
+
+        const { data: products, error: productError } = await supabase
+            .from('menu_products')
+            .select('*')
+            .eq('availability', true);
+
+        if (productError) {
+            console.error('Error loading products:', productError);
+            return;
+        }
+
+        const menuContent = document.getElementById('menu-content');
+        menuContent.innerHTML = ''; // Clear existing content
+
+        if (categories.length === 0) {
+            menuContent.innerHTML = `<p style="text-align: center; padding: 20px;">${language === 'zh' ? '目前没有可用的菜单项。' : 'No hay elementos de menú disponibles en este momento.'}</p>`;
+            return;
+        }
+
+        categories.forEach(category => {
+            const categoryName = language === 'zh' ? category.name_zh : category.name_es;
+
+            const categoryHeader = document.createElement('ion-item-divider');
+            categoryHeader.innerHTML = `<ion-label><h2>${categoryName}</h2></ion-label>`;
+            menuContent.appendChild(categoryHeader);
+
+            const categoryProducts = products.filter(product => product.category_id === category.id);
+
+            if (categoryProducts.length === 0) {
+                const noProductsMessage = document.createElement('p');
+                noProductsMessage.style.textAlign = 'center';
+                noProductsMessage.style.padding = '10px';
+                noProductsMessage.innerText = language === 'zh' ? '此类别暂无产品。' : 'No hay productos en esta categoría.';
+                menuContent.appendChild(noProductsMessage);
+            } else {
+                categoryProducts.forEach(product => {
+                    const productName = language === 'zh' ? product.name_zh : product.name_es;
+                    const productDescription = language === 'zh' ? product.description_zh : product.description_es;
+
+                    const productCard = document.createElement('div');
+                    productCard.classList.add('product-card');
+
+                    let productImage;
+                    if (product.image_base64) {
+                        productImage = new Image();
+                        productImage.src = `data:image/jpeg;base64,${product.image_base64}`;
+                        productImage.alt = productName;
+                        productImage.classList.add('product-image');
+                    } else {
+                        productImage = document.createElement('div');
+                        productImage.classList.add('default-product-image');
+                        productImage.innerText = language === 'zh' ? '暂无图片' : 'Sin imagen';
+                    }
+                    productImage.onclick = () => openProductModal(product);
+
+                    const productInfo = document.createElement('div');
+                    productInfo.classList.add('product-info');
+
+                    productInfo.innerHTML = `
+                        <p class="product-name">${productName}</p>
+                        <p class="product-price">¥${product.price.toFixed(2)}</p>
+                        <p class="product-description">${productDescription}</p>
+                    `;
+
+                    const addButton = document.createElement('ion-button');
+                    addButton.textContent = texts[language].addToCart;
+                    addButton.setAttribute('expand', 'block');
+                    addButton.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        addToCart(product.id);
+                    });
+
+                    productInfo.appendChild(addButton);
+                    productCard.appendChild(productImage);
+                    productCard.appendChild(productInfo);
+
+                    menuContent.appendChild(productCard);
+                });
+            }
+        });
     }
 
     async function openProductModal(product) {
@@ -513,7 +502,7 @@
             cart.push({ productId, quantity: quantity });
         }
         updateCartCount();
-        showToast(texts[language].addedToCart);
+        showToast(texts[language].addToCart);
         saveCartToLocalStorage();
     }
 
@@ -530,7 +519,6 @@
                 language,
                 texts: texts[language],
                 removeFromCart,
-                updateCartItemQuantity,
                 placeOrder,
                 loadCartItems
             },
@@ -538,18 +526,6 @@
             presentingElement: document.querySelector('ion-app')
         });
         await modal.present();
-    }
-
-    function updateCartItemQuantity(productId, newQuantity) {
-        const productIndex = cart.findIndex(item => item.productId === productId);
-        if (productIndex > -1) {
-            cart[productIndex].quantity = newQuantity;
-            if (cart[productIndex].quantity <= 0) {
-                cart.splice(productIndex, 1);
-            }
-            updateCartCount();
-            saveCartToLocalStorage();
-        }
     }
 
     async function loadCartItems() {
@@ -597,52 +573,45 @@
     }
 
     async function placeOrder() {
-        const loading = await presentLoading();
-        try {
-            const { data: order, error: orderError } = await supabase
-                .from('menu_orders')
-                .insert({ table_number: tableNumber })
-                .select()
+        // Insert order
+        const { data: order, error: orderError } = await supabase
+            .from('menu_orders')
+            .insert({ table_number: tableNumber })
+            .select()
+            .single();
+
+        if (orderError) {
+            console.error('Error creating order:', orderError);
+            showToast(texts[language].orderFailure);
+            return;
+        }
+
+        // Insert order items
+        for (const item of cart) {
+            const { data: product, error } = await supabase
+                .from('menu_products')
+                .select('price')
+                .eq('id', item.productId)
                 .single();
 
-            if (orderError) throw orderError;
-
-            for (const item of cart) {
-                const { data: product, error } = await supabase
-                    .from('menu_products')
-                    .select('price')
-                    .eq('id', item.productId)
-                    .single();
-
-                if (error) throw error;
-
-                await supabase.from('menu_order_items').insert({
-                    order_id: order.id,
-                    product_id: item.productId,
-                    quantity: item.quantity,
-                    price: product.price
-                });
+            if (error) {
+                console.error('Error fetching product price:', error);
+                continue;
             }
 
-            await showOrderConfirmation(order.id);
-            cart = [];
-            updateCartCount();
-            saveCartToLocalStorage();
-        } catch (error) {
-            console.error('Error placing order:', error);
-            showToast(texts[language].orderError);
-        } finally {
-            loading.dismiss();
+            await supabase.from('menu_order_items').insert({
+                order_id: order.id,
+                product_id: item.productId,
+                quantity: item.quantity,
+                price: product.price
+            });
         }
-    }
 
-    async function showOrderConfirmation(orderId) {
-        const alert = await alertController.create({
-            header: texts[language].orderConfirmation,
-            message: `${texts[language].orderPlaced} #${orderId}`,
-            buttons: ['OK']
-        });
-        await alert.present();
+        showToast(texts[language].orderSuccess);
+
+        cart = []; // Clear cart
+        updateCartCount();
+        modalController.dismiss();
     }
 
     function removeFromCart(productId) {
@@ -671,11 +640,6 @@
         localize();
         loadMenu();
         document.getElementById('open-cart').addEventListener('click', openCart);
-        const savedLanguage = localStorage.getItem('language');
-        if (savedLanguage) {
-            language = savedLanguage;
-        }
-        localize();
     });
 
     // Define the cart modal as a custom element
@@ -752,9 +716,8 @@
     // Add error handling
     async function handleSupabaseOperation(operation, errorMessage) {
         try {
-            const { data, error } = await operation();
-            if (error) throw error;
-            return data;
+            const result = await operation();
+            return result;
         } catch (error) {
             console.error(error);
             showToast(errorMessage);
@@ -771,6 +734,100 @@
         return loading;
     }
 
+    // Update loadMenu function with loading indicator
+    async function loadMenu() {
+        const loading = showLoading();
+        try {
+            const categories = await handleSupabaseOperation(
+                () => supabase.from('menu_categories').select('*'),
+                texts[language].errorLoadingCategories
+            );
+            if (!categories) return;
+
+            const { data: products, error: productError } = await supabase
+                .from('menu_products')
+                .select('*')
+                .eq('availability', true);
+
+            if (productError) {
+                console.error('Error loading products:', productError);
+                return;
+            }
+
+            const menuContent = document.getElementById('menu-content');
+            menuContent.innerHTML = ''; // Clear existing content
+
+            if (categories.length === 0) {
+                menuContent.innerHTML = `<p style="text-align: center; padding: 20px;">${language === 'zh' ? '目前没有可用的菜单项。' : 'No hay elementos de menú disponibles en este momento.'}</p>`;
+                return;
+            }
+
+            categories.forEach(category => {
+                const categoryName = language === 'zh' ? category.name_zh : category.name_es;
+
+                const categoryHeader = document.createElement('ion-item-divider');
+                categoryHeader.innerHTML = `<ion-label><h2>${categoryName}</h2></ion-label>`;
+                menuContent.appendChild(categoryHeader);
+
+                const categoryProducts = products.filter(product => product.category_id === category.id);
+
+                if (categoryProducts.length === 0) {
+                    const noProductsMessage = document.createElement('p');
+                    noProductsMessage.style.textAlign = 'center';
+                    noProductsMessage.style.padding = '10px';
+                    noProductsMessage.innerText = language === 'zh' ? '此类别暂无产品。' : 'No hay productos en esta categoría.';
+                    menuContent.appendChild(noProductsMessage);
+                } else {
+                    categoryProducts.forEach(product => {
+                        const productName = language === 'zh' ? product.name_zh : product.name_es;
+                        const productDescription = language === 'zh' ? product.description_zh : product.description_es;
+
+                        const productCard = document.createElement('div');
+                        productCard.classList.add('product-card');
+
+                        let productImage;
+                        if (product.image_base64) {
+                            productImage = new Image();
+                            productImage.src = `data:image/jpeg;base64,${product.image_base64}`;
+                            productImage.alt = productName;
+                            productImage.classList.add('product-image');
+                        } else {
+                            productImage = document.createElement('div');
+                            productImage.classList.add('default-product-image');
+                            productImage.innerText = language === 'zh' ? '暂无图片' : 'Sin imagen';
+                        }
+                        productImage.onclick = () => openProductModal(product);
+
+                        const productInfo = document.createElement('div');
+                        productInfo.classList.add('product-info');
+
+                        productInfo.innerHTML = `
+                            <p class="product-name">${productName}</p>
+                            <p class="product-price">¥${product.price.toFixed(2)}</p>
+                            <p class="product-description">${productDescription}</p>
+                        `;
+
+                        const addButton = document.createElement('ion-button');
+                        addButton.textContent = texts[language].addToCart;
+                        addButton.setAttribute('expand', 'block');
+                        addButton.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            addToCart(product.id);
+                        });
+
+                        productInfo.appendChild(addButton);
+                        productCard.appendChild(productImage);
+                        productCard.appendChild(productInfo);
+
+                        menuContent.appendChild(productCard);
+                    });
+                }
+            });
+        } finally {
+            loading.dismiss();
+        }
+    }
+
     // Add service worker registration
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
@@ -783,24 +840,6 @@
                 });
         });
     }
-
-    async function presentLoading() {
-        const loading = await loadingController.create({
-            message: texts[language].loading,
-            duration: 5000,
-        });
-        await loading.present();
-        return loading;
-    }
-
-    window.addEventListener('online', () => {
-        showToast(texts[language].backOnline);
-        loadMenu();
-    });
-
-    window.addEventListener('offline', () => {
-        showToast(texts[language].offline);
-    });
 </script>
 </body>
 </html>
