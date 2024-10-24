@@ -3,11 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>喜大大 XIDADA - 管理后台</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="喜大大 XIDADA - 管理后台">
-    <meta name="theme-color" content="#2f3542">
-    <link rel="manifest" href="/xidada/manifest.json">
-    <link rel="apple-touch-icon" href="/xidada/icons/icon-192x192.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Ionic Framework CSS -->
     <link href="https://cdn.jsdelivr.net/npm/@ionic/core/css/ionic.bundle.css" rel="stylesheet">
     <!-- Ionicons -->
@@ -979,19 +975,6 @@
     if (errors.length > 0) {
         showAlert(errors.join('\n'));
         return;
-    }
-
-    // Add service worker registration
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/xidada/service-worker.js')
-                .then(registration => {
-                    console.log('Service Worker registered with scope:', registration.scope);
-                })
-                .catch(error => {
-                    console.error('Service Worker registration failed:', error);
-                });
-        });
     }
 </script>
 </body>

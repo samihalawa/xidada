@@ -1,0 +1,9 @@
+{
+  "name": "喜大大 XIDADA 美味菜单",
+  "short_name": "XIDADA",
+  "description": "喜大大 XIDADA - 美味中餐菜单，提供多种美味佳肴",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ff4757"
+}

@@ -6,8 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="喜大大 XIDADA - 美味中餐菜单，提供多种美味佳肴">
     <meta name="theme-color" content="#ff4757">
-    <link rel="manifest" href="/xidada/manifest.json">
-    <link rel="apple-touch-icon" href="/xidada/icons/icon-192x192.png">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
     <!-- Ionic Framework CSS -->
     <link href="https://cdn.jsdelivr.net/npm/@ionic/core/css/ionic.bundle.css" rel="stylesheet">
     <!-- Ionicons -->
@@ -778,7 +778,7 @@
     // Add service worker registration
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/xidada/service-worker.js')
+            navigator.serviceWorker.register('/service-worker.js')
                 .then(registration => {
                     console.log('Service Worker registered with scope:', registration.scope);
                 })
